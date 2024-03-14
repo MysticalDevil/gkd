@@ -14,15 +14,25 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.HideSource
+import androidx.compose.material.icons.filled.PermDeviceInformation
+import androidx.compose.material.icons.filled.PictureInPicture
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Screenshot
+import androidx.compose.material.icons.filled.SettingsApplications
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
@@ -117,216 +127,366 @@ fun DebugPage() {
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(0.dp, 10.dp)
+                .padding(vertical = 5.dp, horizontal = 20.dp)
                 .padding(contentPadding),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             val shizukuIsOk by usePollState { shizukuIsSafeOK() }
             if (!shizukuIsOk) {
-                AuthCard(title = "Shizuku授权",
-                    desc = "高级模式:准确识别界面ID,强制模拟点击",
+                AuthCard(title = "Shizuku 授权",
+                    desc = "高级模式：准确识别界面 ID，强制模拟点击",
                     onAuthClick = {
                         try {
                             Shizuku.requestPermission(Activity.RESULT_OK)
                         } catch (e: Exception) {
-                            LogUtils.d("Shizuku授权错误", e)
-                            toast("Shizuku可能没有运行")
+                            LogUtils.d("Shizuku 授权错误", e)
+                            toast("Shizuku 可能没有运行")
                         }
                     })
-                HorizontalDivider()
             } else {
-                TextSwitch(name = "Shizuku模式",
-                    desc = "高级模式:准确识别界面ID,强制模拟点击",
-                    checked = store.enableShizuku,
-                    onCheckedChange = { enableShizuku ->
-                        if (enableShizuku) {
-                            appScope.launchTry(Dispatchers.IO) {
-                                // 校验方法是否适配, 再允许使用 shizuku
-                                val tasks =
-                                    newActivityTaskManager()?.safeGetTasks()?.firstOrNull()
-                                val result = newInputManager()?.safeClick(0f, 0f)
-                                if (tasks != null && result != null) {
-                                    storeFlow.value = store.copy(
-                                        enableShizuku = true
-                                    )
-                                } else {
-                                    toast("Shizuku方法校验失败,无法使用")
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.PermDeviceInformation,
+                        contentDescription = "Shizuku Mode",
+                        modifier = Modifier
+                            .padding(start = 0.dp, end = 20.dp)
+                            .size(24.dp)
+                    )
+                    TextSwitch(
+                        name = "Shizuku 模式",
+                        desc = "高级模式：准确识别界面 ID，强制模拟点击",
+                        checked = store.enableShizuku,
+                        onCheckedChange = { enableShizuku ->
+                            if (enableShizuku) {
+                                appScope.launchTry(Dispatchers.IO) {
+                                    // 校验方法是否适配, 再允许使用 shizuku
+                                    val tasks =
+                                        newActivityTaskManager()?.safeGetTasks()?.firstOrNull()
+                                    val result = newInputManager()?.safeClick(0f, 0f)
+                                    if (tasks != null && result != null) {
+                                        storeFlow.value = store.copy(
+                                            enableShizuku = true
+                                        )
+                                    } else {
+                                        toast("Shizuku 方法校验失败,无法使用")
+                                    }
                                 }
+                            } else {
+                                storeFlow.value = store.copy(
+                                    enableShizuku = false
+                                )
                             }
-                        } else {
-                            storeFlow.value = store.copy(
-                                enableShizuku = false
-                            )
-                        }
-
-                    })
-                HorizontalDivider()
+                        },
+                    )
+                }
             }
 
             val httpServerRunning by HttpService.isRunning.collectAsState()
             val localNetworkIps by HttpService.localNetworkIpsFlow.collectAsState()
 
             Row(
-                modifier = Modifier.padding(10.dp, 5.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "HTTP服务",
-                        fontSize = 18.sp
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    CompositionLocalProvider(
-                        LocalTextStyle provides LocalTextStyle.current.copy(
-                            fontSize = 14.sp
+                Icon(
+                    imageVector = Icons.Filled.Public,
+                    contentDescription = "HTTP Serve",
+                    modifier = Modifier
+                        .padding(start = 0.dp, end = 20.dp)
+                        .size(24.dp)
+                )
+                Row(
+                    modifier = Modifier.padding(10.dp, 5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "HTTP 服务",
+                            fontSize = 16.sp,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                    ) {
-                        if (!httpServerRunning) {
-                            Text(
-                                text = "开启HTTP服务在浏览器下连接调试工具",
+                        Spacer(modifier = Modifier.height(2.dp))
+
+                        CompositionLocalProvider(
+                            LocalTextStyle provides LocalTextStyle.current.copy(
+                                fontSize = 13.sp,
                             )
-                        } else {
-                            Text(
-                                text = "点击下面任意链接打开即可自动连接",
-                            )
-                            Row {
+                        ) {
+                            if (!httpServerRunning) {
                                 Text(
-                                    text = "http://127.0.0.1:${store.httpServerPort}",
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.clickable {
-                                        context.openUri("http://127.0.0.1:${store.httpServerPort}")
-                                    }
+                                    text = "开启 HTTP 服务在浏览器下连接调试工具",
+                                    fontSize = 13.sp,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Spacer(modifier = Modifier.width(2.dp))
-                                Text(text = "仅本设备可访问")
-                            }
-                            localNetworkIps.forEach { host ->
+                            } else {
                                 Text(
-                                    text = "http://${host}:${store.httpServerPort}",
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.clickable {
-                                        context.openUri("http://${host}:${store.httpServerPort}")
-                                    }
+                                    text = "点击下面任意链接打开即可自动连接",
+                                    fontSize = 13.sp,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "http://127.0.0.1:${store.httpServerPort}",
+                                        fontSize = 12.sp,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.clickable {
+                                            context.openUri("http://127.0.0.1:${store.httpServerPort}")
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.width(2.dp))
+                                    Text(text = "仅本设备可访问", fontSize = 10.sp)
+                                }
+                                localNetworkIps.forEach { host ->
+                                    Text(
+                                        text = "http://${host}:${store.httpServerPort}",
+                                        fontSize = 12.sp,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.clickable {
+                                            context.openUri("http://${host}:${store.httpServerPort}")
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Switch(
+                        checked = httpServerRunning,
+                        onCheckedChange = {
+                            if (!checkOrRequestNotifPermission(context)) {
+                                return@Switch
+                            }
+                            if (it) {
+                                HttpService.start()
+                            } else {
+                                HttpService.stop()
+                            }
+                        },
+                    )
                 }
-                Spacer(modifier = Modifier.width(10.dp))
-                Switch(
-                    checked = httpServerRunning,
-                    onCheckedChange = {
-                        if (!checkOrRequestNotifPermission(context)) {
-                            return@Switch
-                        }
-                        if (it) {
-                            HttpService.start()
-                        } else {
-                            HttpService.stop()
-                        }
-                    }
-                )
             }
-            HorizontalDivider()
-
-            SettingItem(
-                title = "HTTP服务端口-${store.httpServerPort}", imageVector = Icons.Default.Edit
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                showPortDlg = true
-            }
-            HorizontalDivider()
-
-            TextSwitch(
-                name = "保留内存订阅",
-                desc = "当HTTP服务关闭时,保留内存订阅",
-                checked = !store.autoClearMemorySubs
-            ) {
-                storeFlow.value = store.copy(
-                    autoClearMemorySubs = !it
+                Icon(
+                    imageVector = Icons.Filled.Share,
+                    contentDescription = "HTTP Serve Port",
+                    modifier = Modifier
+                        .padding(start = 0.dp, end = 10.dp)
+                        .size(24.dp)
                 )
+                SettingItem(
+                    title = "HTTP 服务端口：${store.httpServerPort}",
+                    imageVector = Icons.Default.Edit
+                ) {
+                    showPortDlg = true
+                }
             }
-            HorizontalDivider()
 
-            SettingItem(title = "快照记录", onClick = {
-                navController.navigate(SnapshotPageDestination)
-            })
-            HorizontalDivider()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Save,
+                    contentDescription = "Save Memory subscription",
+                    modifier = Modifier
+                        .padding(start = 0.dp, end = 20.dp)
+                        .size(24.dp)
+                )
+                TextSwitch(
+                    name = "保留内存订阅",
+                    desc = "当 HTTP 服务关闭时,保留内存订阅",
+                    checked = !store.autoClearMemorySubs
+                ) {
+                    storeFlow.value = store.copy(
+                        autoClearMemorySubs = !it
+                    )
+                }
+            }
+
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Camera,
+                    contentDescription = "Snapshot Record",
+                    modifier = Modifier
+                        .padding(start = 0.dp, end = 10.dp)
+                        .size(24.dp)
+                )
+                SettingItem(title = "快照记录", onClick = {
+                    navController.navigate(SnapshotPageDestination)
+                })
+            }
 
             val screenshotRunning by ScreenshotService.isRunning.collectAsState()
-            TextSwitch(
-                name = "截屏服务",
-                desc = "生成快照需要获取屏幕截图,Android11无需开启",
-                checked = screenshotRunning,
-                onCheckedChange = appScope.launchAsFn<Boolean> {
-                    if (!checkOrRequestNotifPermission(context)) {
-                        return@launchAsFn
-                    }
-                    if (it) {
-                        val mediaProjectionManager =
-                            context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                        val activityResult =
-                            launcher.launchForResult(mediaProjectionManager.createScreenCaptureIntent())
-                        if (activityResult.resultCode == Activity.RESULT_OK && activityResult.data != null) {
-                            ScreenshotService.start(intent = activityResult.data!!)
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.SettingsApplications,
+                    contentDescription = "ScreenShot service",
+                    modifier = Modifier
+                        .padding(start = 0.dp, end = 20.dp)
+                        .size(24.dp)
+                )
+                TextSwitch(
+                    name = "截屏服务",
+                    desc = "生成快照需要获取屏幕截图，Android11 无需开启",
+                    checked = screenshotRunning,
+                    onCheckedChange = appScope.launchAsFn<Boolean> {
+                        if (!checkOrRequestNotifPermission(context)) {
+                            return@launchAsFn
                         }
-                    } else {
-                        ScreenshotService.stop()
+                        if (it) {
+                            val mediaProjectionManager =
+                                context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                            val activityResult =
+                                launcher.launchForResult(mediaProjectionManager.createScreenCaptureIntent())
+                            if (activityResult.resultCode == Activity.RESULT_OK && activityResult.data != null) {
+                                ScreenshotService.start(intent = activityResult.data!!)
+                            }
+                        } else {
+                            ScreenshotService.stop()
+                        }
                     }
-                })
-            HorizontalDivider()
+                )
+            }
 
             val floatingRunning by FloatingService.isRunning.collectAsState()
-            TextSwitch(
-                name = "悬浮窗服务",
-                desc = "显示截屏按钮,便于用户主动保存快照",
-                checked = floatingRunning
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (!checkOrRequestNotifPermission(context)) {
-                    return@TextSwitch
-                }
-                if (it) {
-                    if (Settings.canDrawOverlays(context)) {
-                        val intent = Intent(context, FloatingService::class.java)
-                        ContextCompat.startForegroundService(context, intent)
-                    } else {
-                        authActionFlow.value = canDrawOverlaysAuthAction
+                Icon(
+                    imageVector = Icons.Filled.PictureInPicture,
+                    contentDescription = "ScreenShot service",
+                    modifier = Modifier
+                        .padding(start = 0.dp, end = 20.dp)
+                        .size(24.dp)
+                )
+                TextSwitch(
+                    name = "悬浮窗服务",
+                    desc = "显示截屏按钮，便于用户主动保存快照",
+                    checked = floatingRunning
+                ) {
+                    if (!checkOrRequestNotifPermission(context)) {
+                        return@TextSwitch
                     }
-                } else {
-                    FloatingService.stop(context)
+                    if (it) {
+                        if (Settings.canDrawOverlays(context)) {
+                            val intent = Intent(context, FloatingService::class.java)
+                            ContextCompat.startForegroundService(context, intent)
+                        } else {
+                            authActionFlow.value = canDrawOverlaysAuthAction
+                        }
+                    } else {
+                        FloatingService.stop(context)
+                    }
                 }
             }
-            HorizontalDivider()
-            TextSwitch(
-                name = "音量快照",
-                desc = "当音量变化时,生成快照,如果悬浮窗按钮不工作,可以使用这个",
-                checked = store.captureVolumeChange
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                storeFlow.value = store.copy(
-                    captureVolumeChange = it
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                    contentDescription = "ScreenShot service",
+                    modifier = Modifier
+                        .padding(start = 0.dp, end = 20.dp)
+                        .size(24.dp)
                 )
+                TextSwitch(
+                    name = "音量快照",
+                    desc = "当音量变化时，生成快照，如果悬浮窗按钮不工作，可以使用这个",
+                    checked = store.captureVolumeChange
+                ) {
+                    storeFlow.value = store.copy(
+                        captureVolumeChange = it
+                    )
+                }
             }
 
-            HorizontalDivider()
-            TextSwitch(
-                name = "截屏快照",
-                desc = "当用户截屏时保存快照(需手动替换快照图片),仅支持部分小米设备",
-                checked = store.captureScreenshot
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                storeFlow.value = store.copy(
-                    captureScreenshot = it
+                Icon(
+                    imageVector = Icons.Filled.Screenshot,
+                    contentDescription = "ScreenShot service",
+                    modifier = Modifier
+                        .padding(start = 0.dp, end = 20.dp)
+                        .size(24.dp)
                 )
+                TextSwitch(
+                    name = "截屏快照",
+                    desc = "当用户截屏时保存快照（需手动替换快照图片），仅支持部分小米设备",
+                    checked = store.captureScreenshot
+                ) {
+                    storeFlow.value = store.copy(
+                        captureScreenshot = it
+                    )
+                }
             }
 
-            HorizontalDivider()
-            TextSwitch(
-                name = "隐藏快照状态栏",
-                desc = "当保存快照时,隐藏截图里的顶部状态栏高度区域",
-                checked = store.hideSnapshotStatusBar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                storeFlow.value = store.copy(
-                    hideSnapshotStatusBar = it
+                Icon(
+                    imageVector = Icons.Filled.HideSource,
+                    contentDescription = "ScreenShot service",
+                    modifier = Modifier
+                        .padding(start = 0.dp, end = 20.dp)
+                        .size(24.dp)
                 )
+                TextSwitch(
+                    name = "隐藏快照状态栏",
+                    desc = "当保存快照时，隐藏截图里的顶部状态栏高度区域",
+                    checked = store.hideSnapshotStatusBar
+                ) {
+                    storeFlow.value = store.copy(
+                        hideSnapshotStatusBar = it
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(40.dp))
